@@ -49,6 +49,10 @@ LDFLAGS := "-X github.com/open-policy-agent/opa/version.Version=$(VERSION) \
 	-X github.com/open-policy-agent/opa/version.Timestamp=$(BUILD_TIMESTAMP) \
 	-X github.com/open-policy-agent/opa/version.Hostname=$(BUILD_HOSTNAME)"
 
+export DOCKER_BUILDKIT := 1
+
+DOCKER_PLATFORMS := linux/amd64,linux/arm64
+
 .PHONY: all build build-darwin build-linux build-linux-static build-windows clean check check-fmt check-vet check-lint \
     deploy-ci docker-login generate image image-quick image-static image-quick-static \
     push push-static push-latest push-latest-static tag-latest \
@@ -188,7 +192,6 @@ release:
 		$(RELEASE_BUILD_IMAGE) \
 		/_src/build/build-release.sh --version=$(VERSION) --output-dir=/$(RELEASE_DIR) --source-url=/_src
 
-
 .PHONY: release-build-linux
 release-build-linux: ensure-release-dir
 	@$(MAKE) build GOOS=linux CGO_ENABLED=0 WASM_ENABLED=0
@@ -200,7 +203,7 @@ release-build-darwin: ensure-release-dir
 	mv opa_envoy_darwin_$(GOARCH) $(RELEASE_DIR)/
 
 .PHONY: release-build-windows
-release-build-windows: ensure-release-dir
+release-build-windows: ensure-release-dirart
 	@$(MAKE) build GOOS=windows CGO_ENABLED=0 WASM_ENABLED=0
 	mv opa_envoy_windows_$(GOARCH) $(RELEASE_DIR)/opa_envoy_windows_$(GOARCH).exe
 
