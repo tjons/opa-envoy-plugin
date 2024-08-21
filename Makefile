@@ -52,7 +52,8 @@ LDFLAGS := "-X github.com/open-policy-agent/opa/version.Version=$(VERSION) \
 	-X github.com/open-policy-agent/opa/version.Vcs=$(BUILD_COMMIT) \
 	-X github.com/open-policy-agent/opa/version.Timestamp=$(BUILD_TIMESTAMP) \
 	-X github.com/open-policy-agent/opa/version.Hostname=$(BUILD_HOSTNAME)"
-
+	
+# BuildKit is required for automatic platform arg injection (see Dockerfile)
 export DOCKER_BUILDKIT := 1
 
 DOCKER_PLATFORMS := linux/amd64,linux/arm64

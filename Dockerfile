@@ -14,6 +14,8 @@ LABEL org.opencontainers.image.authors="Ashutosh Narkar <anrkar4387@gmail.com>"
 ARG USER=1000:1000
 USER ${USER}
 
+# TARGETOS and TARGETARCH are automatic platform args injected by BuildKit
+# https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ARG TARGETOS
 ARG TARGETARCH
 
