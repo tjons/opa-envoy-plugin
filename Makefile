@@ -56,6 +56,10 @@ LDFLAGS := "-X github.com/open-policy-agent/opa/version.Version=$(VERSION) \
 # BuildKit is required for automatic platform arg injection (see Dockerfile)
 export DOCKER_BUILDKIT := 1
 
+ifeq ($(GOOS)/$(GOARCH),darwin/arm64)
+WASM_ENABLED=0
+endif
+
 DOCKER_PLATFORMS := linux/amd64,linux/arm64
 
 ######################################################
@@ -113,9 +117,27 @@ image-static:
 image-quick:
 	$(MAKE) image-quick-$(GOARCH)
 
+# % = arch
 .PHONY: image-quick-%
 image-quick-%:
-	$(DOCKER) build --platform=linux/$(GOARCH) -t $(IMAGE):$(VERSION) --build-arg BASE=chainguard/glibc-dynamic -f Dockerfile .
+ifneq ($(GOARCH),arm64) # build only static images for arm64
+	$(DOCKER) build \
+		-f Dockerfile \
+		-t $(IMAGE):$(VERSION) \
+		--build-arg BASE=chainguard/glibc-dynamic \
+		--build-arg BIN_DIR=$(RELEASE_DIR) \
+		--platform linux/$* \
+		.
+
+endif
+	$(DOCKER) build \
+		-f Dockerfile \
+		-t $(IMAGE):$(VERSION)-static \
+		--build-arg BASE=chainguard/static:latest \
+		--build-arg BIN_DIR=$(RELEASE_DIR) \
+		--build-arg BIN_SUFFIX=_static \
+		--platform linux/$* \
+		.
 
 .PHONY: image-quick-static
 image-quick-static:
