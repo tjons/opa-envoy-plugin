@@ -34,7 +34,7 @@ spec:
             runAsUser: 0
       containers:
         - name: app
-          image: openpolicyagent/demo-test-server:v1
+          image: docker.io/mccutchen/go-httpbin:v2.15.0
           ports:
             - containerPort: 8080
         - name: envoy
@@ -52,7 +52,7 @@ spec:
           args:
             - "envoy"
             - "--log-level"
-            - "debug"
+            - "trace"
             - "--config-path"
             - "/config/envoy.yaml"
         - name: opa-envoy
@@ -77,20 +77,38 @@ spec:
             - "--diagnostic-addr=0.0.0.0:8282"
             - "--ignore=.*"
             - "/policy/policy.rego"
-          livenessProbe:
-            httpGet:
-              path: /health?plugins
-              scheme: HTTP
-              port: 8282
-            initialDelaySeconds: 5
-            periodSeconds: 15
-          readinessProbe:
-            httpGet:
-              path: /health?plugins
-              scheme: HTTP
-              port: 8282
-            initialDelaySeconds: 5
-            periodSeconds: 15
+          # livenessProbe:
+          #   httpGet:
+          #     path: /health?plugins
+          #     scheme: HTTP
+          #     port: 8282
+          #   initialDelaySeconds: 5
+          #   periodSeconds: 15
+          # readinessProbe:
+          #   httpGet:
+          #     path: /health?plugins
+          #     scheme: HTTP
+          #     port: 8282
+          #   initialDelaySeconds: 5
+          #   periodSeconds: 15
+        - name: debug
+          image: nicolaka/netshoot
+          command: ["/bin/sleep", "3600"]
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+            runAsNonRoot: false
+            runAsUser: 0
+        - name: ubuntu
+          image: ubuntu:noble
+          command: ["/bin/sleep", "3600"]
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+            runAsNonRoot: false
+            runAsUser: 0
       volumes:
         - name: proxy-config
           configMap:
@@ -141,7 +159,7 @@ data:
           - name: envoy.filters.network.http_connection_manager
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-              codec_type: auto
+              codec_type: AUTO
               stat_prefix: ingress_http
               route_config:
                 name: local_route
@@ -154,6 +172,10 @@ data:
                       prefix: "/"
                     route:
                       cluster: service
+              access_log:
+                name: envoy.access_loggers.stdout
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
               http_filters:
               - name: envoy.ext_authz
                 typed_config:
@@ -170,6 +192,9 @@ data:
                       target_uri: unix:///run/opa/sockets/auth.sock
                     timeout: 0.5s
               - name: envoy.filters.http.router
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
       clusters:
       - name: service
         connect_timeout: 0.25s
@@ -206,38 +231,28 @@ data:
 
     default allow = false
 
-    token = {"valid": valid, "payload": payload} if {
-        [_, encoded] := split(http_request.headers.authorization, " ")
-        [valid, _, payload] := io.jwt.decode_verify(encoded, {"secret": "secret"})
-    }
-
     allow if {
-        is_token_valid
-        action_allowed
-    }
-
-    is_token_valid if {
-      token.valid
-      now := time.now_ns() / 1000000000
-      token.payload.nbf <= now
-      now < token.payload.exp
-    }
-
-    action_allowed if {
       http_request.method == "GET"
-      token.payload.role == "guest"
-      glob.match("/people*", [], http_request.path)
     }
-
-    action_allowed if {
-      http_request.method == "GET"
-      token.payload.role == "admin"
-      glob.match("/people*", [], http_request.path)
-    }
-
-    action_allowed if {
-      http_request.method == "POST"
-      token.payload.role == "admin"
-      glob.match("/people", [], http_request.path)
-      lower(input.parsed_body.firstname) != base64url.decode(token.payload.sub)
-    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  labels:
+    app: nginx-netshoot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-netshoot
+  template:
+    metadata:
+      labels:
+        app: nginx-netshoot
+    spec:
+      containers:
+      - name: netshoot
+        image: nicolaka/netshoot
+        command: ["/bin/bash"]
+        args: ["-c", "while true; do ping localhost; sleep 60;done"]

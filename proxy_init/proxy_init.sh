@@ -111,4 +111,6 @@ if [[ ! -z "${ENVOY_OUT_PORT-}" ]]; then
     fi
 fi
 
+echo "Envoy initialization complete."
+
 exit 0

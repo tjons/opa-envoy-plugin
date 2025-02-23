@@ -1,6 +1,6 @@
 module github.com/open-policy-agent/opa-envoy-plugin/examples/grpc/testsrv
 
-go 1.18
+go 1.24
 
 require (
 	github.com/golang/protobuf v1.5.3

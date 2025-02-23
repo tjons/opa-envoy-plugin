@@ -32,7 +32,7 @@ endif
 BIN := opa_envoy_$(GOOS)_$(GOARCH)_$(VARIANT)
 
 REPOSITORY ?= openpolicyagent
-IMAGE := $(REPOSITORY)/opa
+IMAGE ?= $(REPOSITORY)/opa
 
 GO_TAGS := -tags=
 ifeq ($(WASM_ENABLED),1)
