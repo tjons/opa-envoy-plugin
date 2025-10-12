@@ -14,6 +14,7 @@ import (
 
 func main() {
 	runtime.RegisterPlugin("envoy.ext_authz.grpc", plugin.Factory{}) // for backwards compatibility
+	runtime.RegisterPlugin("envoy.ext_proc.grpc", plugin.Factory{})  // TODO(tjons): needed?
 	runtime.RegisterPlugin(plugin.PluginName, plugin.Factory{})
 
 	if err := cmd.RootCommand.Execute(); err != nil {
